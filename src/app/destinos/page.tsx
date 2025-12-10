@@ -1,30 +1,37 @@
-// src/app/destinos/page.tsx
 import Link from "next/link";
-import { getAllCountryGuides } from "@/lib/countryGuides";
+import Image from "next/image";
+import { getCountries } from "@/lib/api";
 
-export default function DestinationsPage() {
-  const guides = getAllCountryGuides();
+export default async function DestinationsPage() {
+  const countries = await getCountries();
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-4xl mx-auto py-10 px-4">
-        <h1 className="text-3xl font-bold">Destinos para viajar con Globo eSIM</h1>
-        <p className="text-slate-300 mt-2">
-          Elegí un país para ver lugares imperdibles, tips de viaje y tu eSIM ideal.
+      <div className="max-w-6xl mx-auto py-16 px-4">
+        <h1 className="text-4xl font-bold">Destinos para viajar con Globo eSIM</h1>
+        <p className="text-slate-300 mt-2 mb-8">
+          Elegí un país para ver los planes disponibles en tiempo real.
         </p>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {guides.map((guide) => (
+        <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {countries.map((country) => (
             <Link
-              key={guide.slug}
-              href={`/destinos/${guide.slug}`}
-              className="border border-slate-700 rounded-xl p-4 hover:border-emerald-400 transition"
+              key={country.slug}
+              href={`/destinos/${country.slug}`}
+              className="group border border-slate-700 rounded-xl overflow-hidden hover:border-emerald-400 transition bg-slate-900"
             >
-              <p className="text-lg font-semibold">{guide.name}</p>
-              <p className="text-xs text-slate-400">{guide.region}</p>
-              <p className="text-slate-300 mt-2 line-clamp-2">
-                {guide.seoDescription}
-              </p>
+              <div className="relative h-32 w-full bg-white/5">
+                 <Image 
+                    src={country.image} 
+                    alt={country.name}
+                    fill
+                    className="object-contain p-4 group-hover:scale-110 transition-transform"
+                 />
+              </div>
+              <div className="p-4">
+                <p className="text-lg font-bold">{country.name}</p>
+                <p className="text-xs text-slate-400 uppercase tracking-wider">{country.code}</p>
+              </div>
             </Link>
           ))}
         </div>
