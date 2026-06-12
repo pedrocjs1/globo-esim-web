@@ -3,13 +3,13 @@ import type { CountryGuide } from "@/types/travel";
 
 export const countryGuides: CountryGuide[] = [
   {
-    slug: "turquia",
+    slug: "turkey",
     name: "Turquía",
     region: "Asia / Europa",
     heroTitle: "Todo para tu viaje a Turquía",
     heroSubtitle:
       "Lugares imperdibles, tips, recomendaciones y tu eSIM lista apenas aterrices.",
-    seoTitle: "Qué ver en Turquía + eSIM para viajar | Globo eSIM",
+    seoTitle: "Qué ver en Turquía + eSIM para viajar | Globiesim",
     seoDescription:
       "Descubrí los mejores lugares de Turquía, tips para viajeros y comprá tu eSIM sin roaming.",
     popularPlaces: [
@@ -47,13 +47,13 @@ export const countryGuides: CountryGuide[] = [
     ]
   },
   {
-    slug: "francia",
+    slug: "france",
     name: "Francia",
     region: "Europa",
     heroTitle: "Organizá tu viaje a Francia",
     heroSubtitle:
       "París, la Costa Azul, castillos, vino y tu eSIM lista para compartir cada momento.",
-    seoTitle: "Qué ver en Francia + eSIM para viajar | Globo eSIM",
+    seoTitle: "Qué ver en Francia + eSIM para viajar | Globiesim",
     seoDescription:
       "Guía rápida de Francia: lugares imperdibles, tips para viajeros y eSIM sin roaming.",
     popularPlaces: [
@@ -89,13 +89,13 @@ export const countryGuides: CountryGuide[] = [
     ]
   },
   {
-    slug: "japon",
+    slug: "japan",
     name: "Japón",
     region: "Asia",
     heroTitle: "Tu viaje a Japón, conectado",
     heroSubtitle:
       "Templos, tecnología, anime y gastronomía, con internet estable en todo momento.",
-    seoTitle: "Qué ver en Japón + eSIM para viajar | Globo eSIM",
+    seoTitle: "Qué ver en Japón + eSIM para viajar | Globiesim",
     seoDescription:
       "Lugares esenciales en Japón, consejos para moverte y eSIM para viajeros.",
     popularPlaces: [

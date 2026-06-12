@@ -148,7 +148,7 @@ export default async function HomePage() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-6">
                 <Image src="/globo-logo.png" width={40} height={40} alt="Logo" />
-                <span className="font-bold text-2xl">Globo eSIM</span>
+                <span className="font-bold text-2xl">Globiesim</span>
               </div>
               <p className="text-slate-500 max-w-sm">
                 Tu compañero de viaje digital. Conectividad global instantánea sin complicaciones ni costos ocultos.
@@ -172,7 +172,7 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="container mx-auto pt-8 border-t border-white/10 text-center text-slate-600 text-sm">
-            <p>© 2025 Globo eSIM.</p>
+            <p>© 2026 Globiesim.</p>
           </div>
         </footer>
 

@@ -5,17 +5,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'cdn.airalo.com', // Banderas e imágenes de países
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'sandbox.airalo.com', // 👈 IMPORTANTE: QRs del Sandbox
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.airalo.com', // QRs de Producción (para el futuro)
+        hostname: '**.airalo.com', // Cubre cdn.airalo.com, cdn-revamp.airalo.com, www.airalo.com, sandbox.airalo.com, etc.
         pathname: '/**',
       },
     ],

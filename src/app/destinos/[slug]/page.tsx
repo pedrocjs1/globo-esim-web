@@ -1,4 +1,5 @@
-import { getCountryGuide } from "@/lib/countryGuides";
+import type { Metadata } from "next";
+import { getCountryGuide, getAllCountrySlugs } from "@/lib/countryGuides";
 import { getCountryPlans } from "@/lib/api"; // API Real del backend
 import { PlanCard } from "@/components/PlanCard"; // Componente interactivo (Client Component)
 
@@ -6,12 +7,64 @@ interface CountryPageProps {
   params: Promise<{ slug: string }>;
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+// ISR: la página se regenera como máximo cada 1h (catálogo Airalo cambia poco).
+export const revalidate = 3600;
+// Pre-renderizamos los países con guía; el resto se genera on-demand y se cachea.
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  return getAllCountrySlugs().map((slug) => ({ slug }));
+}
+
+// Nombre legible a partir del slug de Airalo (ej. "united-states" -> "United States")
+function slugToName(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+export async function generateMetadata({
+  params,
+}: CountryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const guide = getCountryGuide(slug);
+  const name = guide?.name ?? slugToName(slug);
+
+  const title = guide?.seoTitle ?? `eSIM para ${name} — datos sin roaming | Globiesim`;
+  const description =
+    guide?.seoDescription ??
+    `Comprá tu eSIM para ${name} en minutos: internet desde que aterrizás, sin roaming ni chips físicos. Planes con precios reales.`;
+  const url = `${SITE_URL}/destinos/${slug}`;
+
+  return {
+    // absolute: evita que el layout raíz duplique el sufijo "| Globiesim"
+    title: { absolute: title },
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      siteName: "Globiesim",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
 export default async function CountryPage({ params }: CountryPageProps) {
   const { slug } = await params;
-  
+
   // 1. Intentamos cargar la guía de texto local (Tips, Lugares) si existe
   const guide = getCountryGuide(slug);
-  
+
   // 2. Cargamos los planes REALES desde Airalo (Backend)
   const plans = await getCountryPlans(slug);
 
@@ -24,14 +77,65 @@ export default async function CountryPage({ params }: CountryPageProps) {
     );
   }
 
+  const name = guide?.name ?? slugToName(slug);
+
   // Fallback para el título si no hay guía escrita a mano
-  const pageTitle = guide ? guide.heroTitle : `eSIM para ${slug.toUpperCase()}`;
+  const pageTitle = guide ? guide.heroTitle : `eSIM para ${name}`;
   const pageSubtitle = guide ? guide.heroSubtitle : "Conéctate al instante con precios locales.";
+
+  // --- Datos estructurados (JSON-LD) para SEO + GEO (que la IA nos cite) ---
+  const ld: Record<string, any>[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Destinos", item: `${SITE_URL}/destinos` },
+        { "@type": "ListItem", position: 3, name, item: `${SITE_URL}/destinos/${slug}` },
+      ],
+    },
+  ];
+
+  const prices = plans.map((p) => p.price).filter((p) => typeof p === "number");
+  if (prices.length > 0) {
+    ld.push({
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: `eSIM para ${name}`,
+      description: `Planes de datos eSIM para ${name}: internet sin roaming, activación instantánea por QR.`,
+      brand: { "@type": "Brand", name: "Globiesim" },
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "USD",
+        lowPrice: Math.min(...prices),
+        highPrice: Math.max(...prices),
+        offerCount: plans.length,
+      },
+    });
+  }
+
+  if (guide?.tips?.length) {
+    ld.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: guide.tips.map((tip) => ({
+        "@type": "Question",
+        name: tip.title,
+        acceptedAnswer: { "@type": "Answer", text: tip.description },
+      })),
+    });
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* JSON-LD: structured data para Google y motores de IA */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      />
+
       <div className="max-w-4xl mx-auto py-10 px-4">
-        
+
         {/* HEADER */}
         <h1 className="text-4xl font-bold text-emerald-400">{pageTitle}</h1>
         <p className="text-slate-300 mt-2 text-lg">{pageSubtitle}</p>
@@ -42,13 +146,11 @@ export default async function CountryPage({ params }: CountryPageProps) {
             📲 Planes disponibles ahora
             <span className="text-xs bg-emerald-900 text-emerald-300 px-2 py-1 rounded-full">En vivo</span>
           </h2>
-          
+
           {plans.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               {plans.map((plan) => (
-                // ✅ CAMBIO CLAVE: Usamos el componente PlanCard aquí
-                // Esto habilita la lógica de compra y el loading
-                <PlanCard key={plan.id} plan={plan} />
+                <PlanCard key={plan.id} plan={plan} slug={slug} />
               ))}
             </div>
           ) : (

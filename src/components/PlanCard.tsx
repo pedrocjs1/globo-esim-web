@@ -1,156 +1,116 @@
 "use client";
 
 import { useState } from "react";
-import { Plan, buyEsim, OrderResponse } from "@/lib/api";
-import Image from "next/image";
+import { Plan, startCheckout } from "@/lib/api";
 
-// --- COMPONENTE VISUAL: MODAL DE ÉXITO (Estilo Lemon adaptado a Web) ---
-function SuccessModal({ 
-  order, 
-  planName, 
-  onClose 
-}: { 
-  order: OrderResponse; 
-  planName: string; 
+// --- MODAL DE CHECKOUT: captura el email y arranca el pago ---
+function CheckoutModal({
+  plan,
+  slug,
+  onClose,
+}: {
+  plan: Plan;
+  slug: string;
   onClose: () => void;
 }) {
-  const [deviceTab, setDeviceTab] = useState<"iphone" | "android">("iphone");
-  const hasQr = Boolean(order.qrcode_url);
-  const hasLpa = Boolean(order.qrcode); // En Airalo 'qrcode' a veces trae el string LPA
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = async () => {
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError("Necesitamos un email válido — ahí te enviamos la eSIM.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const { redirectUrl } = await startCheckout(plan.id, slug, trimmed);
+      // Redirigimos al checkout hosted de dLocal Go.
+      window.location.href = redirectUrl;
+    } catch (e: any) {
+      setError(e.message || "No pudimos iniciar el pago. Probá de nuevo.");
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#0f172a] border border-slate-700 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl p-6 relative">
-        
-        {/* Botón Cerrar */}
-        <button 
+      <div className="bg-[#0f172a] border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl p-6 relative">
+        <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+          disabled={loading}
+          className="absolute top-4 right-4 text-slate-400 hover:text-white transition disabled:opacity-40"
         >
           ✕
         </button>
 
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center border border-slate-700 shadow-lg">
-             <Image src="/globo-logo.png" width={28} height={28} alt="Logo" className="rounded-md" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">¡Tu eSIM está lista! 🌍✨</h2>
-            <p className="text-sm text-slate-400">Plan <b>{planName}</b> generado con éxito.</p>
-          </div>
+        <h2 className="text-xl font-bold text-white mb-1">Confirmá tu compra 🎈</h2>
+        <p className="text-sm text-slate-400 mb-5">
+          Plan <b className="text-slate-200">{plan.data}</b> · {plan.validity}
+        </p>
+
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-5 flex justify-between items-center">
+          <span className="text-slate-400 text-sm">Total a pagar</span>
+          <span className="text-2xl font-bold text-emerald-400">${plan.price} USD</span>
         </div>
 
-        {/* QR Section */}
-        {hasQr && (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 text-center mb-6">
-            <div className="bg-white p-2 rounded-xl inline-block mb-3">
-              <Image 
-                src={order.qrcode_url!} 
-                alt="QR eSIM" 
-                width={200} 
-                height={200} 
-                className="mix-blend-multiply"
-              />
-            </div>
-            <p className="text-xs text-slate-400">
-              Escaneá este código con la cámara de tu celular para instalar la eSIM.
-            </p>
-          </div>
-        )}
+        <label className="block text-xs text-slate-400 mb-2 uppercase font-semibold">
+          Email para recibir tu eSIM
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handlePay()}
+          placeholder="tu@email.com"
+          autoFocus
+          disabled={loading}
+          className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition mb-2"
+        />
 
-        {/* LPA Section (Código Manual) */}
-        <div className="mb-6">
-          <p className="text-xs text-slate-500 uppercase font-bold mb-2">Código de activación manual (LPA)</p>
-          <div className="bg-black/50 border border-slate-800 rounded-xl p-3 font-mono text-xs text-emerald-400 break-all select-all cursor-pointer hover:bg-black/70 transition"
-               onClick={() => navigator.clipboard.writeText(order.qrcode || "")}>
-            {order.qrcode || "No disponible en Sandbox"}
-          </div>
-          <p className="text-[10px] text-slate-600 mt-1 text-right">Clic para copiar</p>
-        </div>
+        {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
 
-        {/* Tabs de Guía */}
-        <div className="bg-slate-900 rounded-xl p-1 flex gap-1 mb-4">
-          <button
-            onClick={() => setDeviceTab("iphone")}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-              deviceTab === "iphone" ? "bg-slate-700 text-white shadow" : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            iPhone
-          </button>
-          <button
-            onClick={() => setDeviceTab("android")}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-              deviceTab === "android" ? "bg-slate-700 text-white shadow" : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            Android
-          </button>
-        </div>
-
-        {/* Pasos de Instalación */}
-        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-800/50">
-          <ol className="list-decimal list-inside space-y-3 text-sm text-slate-300">
-            {deviceTab === "iphone" ? (
-              <>
-                <li>Abrí <b>Configuración</b> &gt; <b>Datos celulares</b>.</li>
-                <li>Tocá <b>Agregar eSIM</b> &gt; <b>Usar código QR</b>.</li>
-                <li>Escaneá el QR o ingresá los datos manualmente.</li>
-                <li>Activá el <b>Roaming de datos</b> en la eSIM al llegar.</li>
-              </>
-            ) : (
-              <>
-                <li>Abrí <b>Ajustes</b> &gt; <b>Conexiones</b> &gt; <b>Admin. de SIM</b>.</li>
-                <li>Tocá <b>Añadir eSIM</b> &gt; <b>Escanear código QR</b>.</li>
-                <li>Escaneá el QR o tocá "Ingresar código" abajo.</li>
-                <li>Asegurate de activar <b>Itinerancia de datos</b> al viajar.</li>
-              </>
-            )}
-          </ol>
-        </div>
-
-        <button 
-          onClick={onClose}
-          className="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition"
+        <button
+          onClick={handlePay}
+          disabled={loading}
+          className={`w-full mt-3 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${
+            loading
+              ? "bg-slate-800 text-slate-400 cursor-wait"
+              : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg hover:shadow-emerald-500/20"
+          }`}
         >
-          Entendido, ¡gracias!
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Redirigiendo al pago...
+            </>
+          ) : (
+            "Pagar de forma segura"
+          )}
         </button>
 
+        <p className="text-[11px] text-slate-600 mt-3 text-center">
+          Pago procesado por dLocal Go. Tu eSIM se genera apenas se confirma el pago.
+        </p>
       </div>
     </div>
   );
 }
 
-
 // --- COMPONENTE PRINCIPAL: PLAN CARD ---
-export function PlanCard({ plan }: { plan: Plan }) {
-  const [loading, setLoading] = useState(false);
-  const [successOrder, setSuccessOrder] = useState<OrderResponse | null>(null);
-
-  const handleBuy = async () => {
-    // Simulación de confirmación (idealmente sería un modal de pago previo)
-    if (!confirm(`Confirmar compra de ${plan.data} por $${plan.price} USD?`)) return;
-
-    setLoading(true);
-    try {
-      const order = await buyEsim(plan.id);
-      setSuccessOrder(order); // Esto activará el modal
-    } catch (error: any) {
-      alert(`Hubo un error: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+export function PlanCard({ plan, slug }: { plan: Plan; slug: string }) {
+  const [showCheckout, setShowCheckout] = useState(false);
 
   return (
     <>
       <div className="border border-slate-700 bg-slate-900/50 rounded-xl p-6 hover:border-emerald-500 transition relative overflow-hidden group flex flex-col h-full">
         {/* Badge de Operador (Opcional) */}
         {plan.operator && (
-           <span className="absolute top-4 right-4 text-[10px] uppercase font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
-             {plan.operator}
-           </span>
+          <span className="absolute top-4 right-4 text-[10px] uppercase font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+            {plan.operator}
+          </span>
         )}
 
         <div className="mb-4 mt-2">
@@ -169,39 +129,22 @@ export function PlanCard({ plan }: { plan: Plan }) {
             <p className="text-3xl font-bold text-emerald-400">${plan.price}</p>
           </div>
           <div className="text-right">
-             <span className="text-xs text-slate-500">USD</span>
+            <span className="text-xs text-slate-500">USD</span>
           </div>
         </div>
 
         <div className="mt-auto">
           <button
-            onClick={handleBuy}
-            disabled={loading}
-            className={`w-full py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-              loading
-                ? "bg-slate-800 text-slate-400 cursor-wait"
-                : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg hover:shadow-emerald-500/20"
-            }`}
+            onClick={() => setShowCheckout(true)}
+            className="w-full py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg hover:shadow-emerald-500/20"
           >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Procesando...
-              </>
-            ) : (
-              "Comprar Ahora"
-            )}
+            Comprar Ahora
           </button>
         </div>
       </div>
 
-      {/* RENDERIZADO DEL MODAL SI HAY ORDEN EXITOSA */}
-      {successOrder && (
-        <SuccessModal 
-          order={successOrder} 
-          planName={plan.data} 
-          onClose={() => setSuccessOrder(null)} 
-        />
+      {showCheckout && (
+        <CheckoutModal plan={plan} slug={slug} onClose={() => setShowCheckout(false)} />
       )}
     </>
   );

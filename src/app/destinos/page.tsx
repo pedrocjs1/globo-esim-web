@@ -1,10 +1,18 @@
-import { getCountries } from "@/lib/api";
+import { getCountries, Country } from "@/lib/api";
 import { DestinationsGrid } from "@/components/DestinationsGrid";
 import { Suspense } from "react";
 
+// ISR: regenera el listado cada 1h. Si el backend tiene un hipo, no rompe el build.
+export const revalidate = 3600;
+
 // Componente Wrapper para manejar Suspense (necesario para useSearchParams en Next.js)
 export default async function DestinationsPage() {
-  const countries = await getCountries();
+  let countries: Country[] = [];
+  try {
+    countries = await getCountries();
+  } catch (error) {
+    console.error("Error backend (destinos):", error);
+  }
 
   return (
     <div className="min-h-screen bg-[#050509] text-white">
