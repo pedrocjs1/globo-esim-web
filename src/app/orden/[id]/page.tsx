@@ -21,6 +21,7 @@ function OrderView() {
   const params = useParams();
   const search = useSearchParams();
   const orderId = String(params.id);
+  const token = search.get("t");
   const cancelled = search.get("cancelado") === "1";
 
   const [order, setOrder] = useState<OrderStatus | null>(null);
@@ -33,13 +34,13 @@ function OrderView() {
 
   const check = useCallback(async () => {
     try {
-      const data = await getOrderStatus(orderId);
+      const data = await getOrderStatus(orderId, token);
       setOrder(data);
       setError(null);
     } catch (e: any) {
       setError(e.message || "No pudimos consultar tu orden.");
     }
-  }, [orderId]);
+  }, [orderId, token]);
 
   useEffect(() => {
     check();

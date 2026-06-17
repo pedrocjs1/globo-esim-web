@@ -95,8 +95,13 @@ export async function startCheckout(
 
 // Consultar el estado de una orden tras volver del pago (la página /orden/[id] hace polling).
 // El backend, al consultarse, verifica el pago en dLocal y completa la orden si corresponde.
-export async function getOrderStatus(orderId: number | string): Promise<OrderStatus> {
-  const res = await fetch(`${API_URL}/checkout/${orderId}/status`, {
+// El `token` (anti-IDOR) viaja en la URL de retorno del checkout; sin él el backend responde 404.
+export async function getOrderStatus(
+  orderId: number | string,
+  token?: string | null
+): Promise<OrderStatus> {
+  const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+  const res = await fetch(`${API_URL}/checkout/${orderId}/status${qs}`, {
     cache: "no-store",
   });
 
